@@ -27,8 +27,8 @@ public class Difference
         ASTNode astB = parseFile(filenameB);
 
         PrintStream out = SystemUtil.getOutStream();
-        out.printf("%s parssed to:%n<<<%s>>>%n%n", filenameA, astA);
-        out.printf("%s parssed to:%n<<<%s>>>%n%n", filenameB, astB);
+        out.printf("%s parsed to:%n<<<%s>>>%n%n", filenameA, astA);
+        out.printf("%s parsed to:%n<<<%s>>>%n%n", filenameB, astB);
         this.labeler = new NodeLabeler();
         this.treeA = labeler.label(astA);
         this.indexAfterA = labeler.getNextIndex();
