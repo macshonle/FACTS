@@ -9,6 +9,7 @@ public class TreeNode
 {
     public TreeNode parent;
     public int id;
+    public int postorderid;
     public List<TreeNode> children = new ArrayList<TreeNode>();
 
     public TreeNode(int id) {
@@ -56,4 +57,38 @@ public class TreeNode
         buff.append(')');
         buff.append(indenter.newLine());
     }
+    
+
+    public TreeNode FindNode(String _label) {
+        return this;
+    }
+    
+    public TreeNode FindNode(int _postorderid) {
+        return this;
+    }
+
+    public int CountNodes() {
+        return 1;
+    }
+
+    public int CountNodes(String _label) {
+        return 1;
+    }
+
+    public int GetPostOrderID() {
+        return postorderid;
+    }
+
+    public int GetChildCount() {
+        return 1;
+    }
+
+    public TreeNode GetIthChild(int i) {
+        return this;
+    }
+
+    public String GetLabel() {
+        return String.valueOf(id);
+    }
+
 }

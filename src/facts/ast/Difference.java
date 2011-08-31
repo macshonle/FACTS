@@ -13,6 +13,9 @@ import org.eclipse.jdt.core.dom.CompilationUnit;
 
 import edu.utsa.eclipse.SystemUtil;
 import edu.utsa.files.FileUtil;
+import facts.diff.ComparisonZhangShasha;
+import facts.diff.OpsZhangShasha;
+import facts.diff.Transformation;
 
 public class Difference
 {
@@ -45,6 +48,11 @@ public class Difference
         for (int i=indexAfterA; i<indexAfterB; ++i) {
             out.append(String.format(" + %d: %s%n", i, labeler.getAnnotatedIndexedItem(i)));
         }
+        out.append("THIS IS A TEST");
+        ComparisonZhangShasha ZS = new ComparisonZhangShasha();
+        OpsZhangShasha costs = new OpsZhangShasha();
+        Transformation transform = ZS.findDistance(treeA, treeB, costs, out, labeler);
+
         return out.toString();
     }
 
