@@ -1,7 +1,10 @@
 package facts.diff;
 
-import java.util.*;
-import java.io.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Hashtable;
+import java.util.Iterator;
+import java.util.TreeSet;
 
 import facts.ast.NodeLabeler;
 import facts.ast.TreeNode;
@@ -23,7 +26,7 @@ public class ComparisonZhangShasha
     //Each call to findDistance will change these tables.  But each
     //call is independent (and reinitialises this) so the side effect
     //has no real consequence.  ie.  There are NO public side effects.
-    private Hashtable<String, Hashtable<String, Double>> forestDistance = null;
+//    private Hashtable<String, Hashtable<String, Double>> forestDistance = null; TODO: never read
     private double[][] distance = null;
 
     public Transformation findDistance (TreeNode FTree, TreeNode GTree, OpsZhangShasha ops, StringBuilder out, NodeLabeler labeler) 
@@ -34,8 +37,8 @@ public class ComparisonZhangShasha
         //column and row.  So, distance[0,*] and distance[*,0] should
         //be permanently zero.
         // distance = new double[FTree.getNodeCount()+1][GTree.getNodeCount()+1];
-        int Size1 = FTree.CountNodes(FTree.GetLabel())+1;
-        int Size2 = GTree.CountNodes(GTree.GetLabel())+1;
+        int Size1 = FTree.CountNodes(FTree.getLabel())+1;
+        int Size2 = GTree.CountNodes(GTree.getLabel())+1;
         int FullSize = Size1 + Size2;
 //        distance = new double[FTree.CountNodes(FTree.GetToken(), false)+1][GTree.CountNodes(GTree.GetToken(), false)+1];
         distance = new double[Size1][Size2];
@@ -273,17 +276,17 @@ if ((i <= Size1-1) && (j <= Size2-1))
        
        if (updist < getFD(f,g,DPTable))
        {
-          action = FTree.FindNode(f).GetLabel() + " REMOVED("+f+"), ";
+          action = FTree.findNode(f).getLabel() + " REMOVED("+f+"), ";
           diffs = diffs + action;
        }
        else if (diagdist < getFD(f,g,DPTable))
        {
-          action = FTree.FindNode(f).GetLabel() + " RENAMED to " + GTree.FindNode(g).GetLabel() + " ("+f+","+g+"), ";
+          action = FTree.findNode(f).getLabel() + " RENAMED to " + GTree.findNode(g).getLabel() + " ("+f+","+g+"), ";
           diffs = diffs + action;
        }
        else if (leftdist < getFD(f,g,DPTable))
        {
-          action = GTree.FindNode(g).GetLabel() + " INSERTED ("+g+"), ";
+          action = GTree.findNode(g).getLabel() + " INSERTED ("+g+"), ";
           diffs = diffs + action;
        }
        
@@ -361,7 +364,7 @@ if (!diffs.equals(""))
 //          +distance[FTree.CountNodes(FTree.GetToken(), false)][GTree.CountNodes(GTree.GetToken(), false)]);
 
         Transformation transform = new Transformation();
-        transform.setCost(distance[FTree.CountNodes(FTree.GetLabel())][GTree.CountNodes(GTree.GetLabel())]);
+        transform.setCost(distance[FTree.CountNodes(FTree.getLabel())][GTree.CountNodes(GTree.getLabel())]);
         return transform;
     }
 

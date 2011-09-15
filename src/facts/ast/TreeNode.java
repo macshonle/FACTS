@@ -8,16 +8,17 @@ import edu.utsa.strings.Indenter;
 public class TreeNode
 {
     public TreeNode parent;
-    public int id;
-    public int postorderid;
+    public String label;
+    public int postOrderID;
     public List<TreeNode> children = new ArrayList<TreeNode>();
+    private int treeSize = -1 /*our memoized size*/;
 
-    public TreeNode(int id) {
-        this.id = id;
+    public TreeNode(String label) {
+        this.label = label;
     }
 
-    public int getID() {
-        return id;
+    public String getLabel() {
+        return label;
     }
 
     public void addChildren(List<TreeNode> newChildren) {
@@ -36,16 +37,17 @@ public class TreeNode
     private static void prettyPrint(NodeLabeler labeler, TreeNode treeNode, StringBuilder buff,
             Indenter indenter) {
         buff.append('(');
-        buff.append(treeNode.id);
+        buff.append(treeNode.label);
         if (!treeNode.children.isEmpty()) {
             buff.append(':');
             indenter.indent();
             buff.append(indenter.newLine());
             for (TreeNode child : treeNode.children) {
-                if (labeler.hasStringRep(child.id)) {
-                    buff.append(child.id);
+                Integer parsedLabel = Integer.valueOf(child.label);
+                if (labeler.hasStringRep(parsedLabel)) {
+                    buff.append(child.label);
                     buff.append(':');
-                    buff.append(labeler.getStringRep(child.id));
+                    buff.append(labeler.getStringRep(parsedLabel));
                     buff.append(indenter.newLine());
                 }
                 else {
@@ -57,38 +59,66 @@ public class TreeNode
         buff.append(')');
         buff.append(indenter.newLine());
     }
-    
 
-    public TreeNode FindNode(String _label) {
-        return this;
+    public TreeNode findNode(int postOrderID) {
+        if (this.postOrderID == postOrderID) {
+            return this;
+        }
+        else {
+            for (TreeNode child : children) {
+                TreeNode node = child.findNode(postOrderID);
+                if (node != null) {
+                    return node;
+                }
+            }
+        }
+        return null;
+    }
+
+    public TreeNode findNode(String label) {
+        if (this.label.equals(label)) {
+            return this;
+        }
+        else {
+            for (TreeNode child : children) {
+                TreeNode node = child.findNode(label);
+                if (node != null) {
+                    return node;
+                }
+            }
+        }
+        return null;
     }
     
-    public TreeNode FindNode(int _postorderid) {
-        return this;
+    public int CountNodes(String label) {
+        TreeNode foundNode = findNode(label);
+        if (foundNode == null) {
+            return 0;
+        }
+        else {
+            return foundNode.getSize();
+        }
     }
-
-    public int CountNodes() {
-        return 1;
-    }
-
-    public int CountNodes(String _label) {
-        return 1;
+    
+    public int getSize() {
+        if (treeSize == -1) {
+            this.treeSize = 1;
+            for (TreeNode child : children) {
+                this.treeSize += child.getSize();
+            }
+        }
+        return treeSize;
     }
 
     public int GetPostOrderID() {
-        return postorderid;
+        return postOrderID;
     }
 
     public int GetChildCount() {
-        return 1;
+        return children.size();
     }
 
     public TreeNode GetIthChild(int i) {
-        return this;
+        return children.get(i);
     }
-
-    public String GetLabel() {
-        return String.valueOf(id);
-    }
-
 }

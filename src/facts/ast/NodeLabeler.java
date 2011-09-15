@@ -82,14 +82,14 @@ public class NodeLabeler
                     out.printf("CREATED simple value id=%d, value=%s%n", id,
                             StringUtil.valueOfAndClass(property));
                 }
-                TreeNode childTreeNode = new TreeNode(id);
+                TreeNode childTreeNode = new TreeNode(String.valueOf(id));
                 children.add(childTreeNode);
             }
             else if (spd.isChildProperty()) {
                 ASTNode child = (ASTNode)property;
                 TreeNode childTreeNode;
                 if (child == null) {
-                    childTreeNode = new TreeNode(NULL_ID);
+                    childTreeNode = new TreeNode(String.valueOf(NULL_ID));
                 }
                 else {
                     // TODO: We can short-cut nodes that we want to treat like
@@ -118,7 +118,7 @@ public class NodeLabeler
                     out.printf("CREATED list id=%d, key={%s}, value=<%s>%n", id, listNodeKey,
                             property);
                 }
-                TreeNode listChild = new TreeNode(id);
+                TreeNode listChild = new TreeNode(String.valueOf(id));
                 listChild.addChildren(listChildren);
                 children.add(listChild);
             }
@@ -137,7 +137,7 @@ public class NodeLabeler
             out.printf("CREATED list id=%d, key={%s}, value=<%s>%n", id, treeNodeKey,
                     StringUtil.minimizeWhitespace(node));
         }
-        TreeNode result = new TreeNode(id);
+        TreeNode result = new TreeNode(String.valueOf(id));
         result.addChildren(children);
         return result;
     }
@@ -147,7 +147,7 @@ public class NodeLabeler
         buff.append(nodeType);
         buff.append(':');
         for (TreeNode child : children) {
-            buff.append(child.getID());
+            buff.append(child.getLabel());
             buff.append(';');
         }
         String treeNodeKey = buff.toString();
