@@ -44,16 +44,19 @@ public class Difference
     public String getResults() {
         StringBuilder out = new StringBuilder();
         out.append(treeA.prettyPrint(labeler));
+
+        out.append(treeB.prettyPrint(labeler));
+
         out.append(String.format("%nIndex after A: %d%nIndex after B: %d%n",
                 indexAfterA, indexAfterB));
         out.append(String.format("%nNew indecies for tree B:%n"));
         for (int i = indexAfterA; i < indexAfterB; ++i) {
             out.append(String.format(" + %d: %s%n", i, labeler.getAnnotatedIndexedItem(i)));
         }
-        out.append("THIS IS A TEST");
         ComparisonZhangShasha ZS = new ComparisonZhangShasha();
         OpsZhangShasha costs = new OpsZhangShasha();
         Transformation transform = ZS.findDistance(treeA, treeB, costs, out, labeler);
+        out.append(String.format(ZS.reportDifferences()));
         for (TreeEditOperation operation : transform.getOperations()) {
             
         }

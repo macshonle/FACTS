@@ -29,11 +29,11 @@ public class TreeNode
     }
 
     public String prettyPrint(NodeLabeler labeler) {
-        StringBuilder buff = new StringBuilder();
-        prettyPrint(labeler, this, buff, new Indenter("   "));
-        return buff.toString();
+    	StringBuilder buff = new StringBuilder();
+    	prettyPrint(labeler, this, buff, new Indenter("   "));
+    	return buff.toString();    
     }
-
+    
     private static void prettyPrint(NodeLabeler labeler, TreeNode treeNode, StringBuilder buff,
             Indenter indenter) {
         buff.append('(');
@@ -121,4 +121,26 @@ public class TreeNode
     public TreeNode GetIthChild(int i) {
         return children.get(i);
     }
+    
+    public int setPostOrdering(int counter) {
+        int internalCounter = counter;
+
+      	//examine children
+        for (TreeNode child : children) {
+      	    internalCounter = child.setPostOrdering(internalCounter);
+        }
+
+      	//set new postOrderID for this node (set to counter+1)
+        postOrderID = internalCounter+1;
+      	return internalCounter+1;
+    }
+
+    public String getLabelerValue(NodeLabeler labeler) {
+        StringBuilder buff = new StringBuilder();
+        Integer parsedLabel = Integer.valueOf(label);
+        if (labeler.hasStringRep(parsedLabel))
+        	buff.append(labeler.getStringRep(parsedLabel));
+        return buff.toString();
+    }
+
 }

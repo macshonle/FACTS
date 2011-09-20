@@ -28,21 +28,34 @@ public class ComparisonZhangShasha
     //has no real consequence.  ie.  There are NO public side effects.
 //    private Hashtable<String, Hashtable<String, Double>> forestDistance = null; TODO: never read
     private double[][] distance = null;
-
-    public Transformation findDistance (TreeNode FTree, TreeNode GTree, OpsZhangShasha ops, StringBuilder out, NodeLabeler labeler) 
+    private int Size1 = -1;
+    private int Size2 = -1;
+    private Hashtable<Integer, Hashtable<Integer, Double>> DPTable = new Hashtable<Integer, Hashtable<Integer, Double>>();
+    private Hashtable<Integer, Hashtable<Integer, Double>> FinalDPTable = new Hashtable<Integer, Hashtable<Integer, Double>>();
+    private TreeNode FTree;
+    private TreeNode GTree;
+    private NodeLabeler labeler;
+    
+    public Transformation findDistance (TreeNode _FTree, TreeNode _GTree, OpsZhangShasha ops, StringBuilder out, NodeLabeler _labeler) 
     {  
+    	FTree = _FTree;
+    	GTree = _GTree;
+    	labeler = _labeler;
         //This is initialized to be n+1 * m+1.  It should really be n*m
         //but because of java's zero indexing, the for loops would
         //look much more readable if the matrix is extended by one
         //column and row.  So, distance[0,*] and distance[*,0] should
         //be permanently zero.
         // distance = new double[FTree.getNodeCount()+1][GTree.getNodeCount()+1];
-        int Size1 = FTree.CountNodes(FTree.getLabel())+1;
-        int Size2 = GTree.CountNodes(GTree.getLabel())+1;
+        Size1 = FTree.CountNodes(FTree.getLabel())+1;
+        Size2 = GTree.CountNodes(GTree.getLabel())+1;
         int FullSize = Size1 + Size2;
 //        distance = new double[FTree.CountNodes(FTree.GetToken(), false)+1][GTree.CountNodes(GTree.GetToken(), false)+1];
         distance = new double[Size1][Size2];
+        //System.out.println("Size1="+Size1+ " Size2="+Size2);
 
+        FTree.setPostOrdering(0);
+        GTree.setPostOrdering(0);
         //Preliminaries
         //1. Find left-most leaf and key roots
         Hashtable<Integer, Integer> aLeftLeaf = new Hashtable<Integer, Integer>();
@@ -253,10 +266,25 @@ if ((i <= Size1-1) && (j <= Size2-1))
 
 //     System.out.println("*   aKeyroot: "+aKeyroot+"   bKeyroot: "+bKeyroot);
 //System.out.println("666");
-//     seeFD(DPTable); //trace
+  //   seeFD(DPTable); //trace
+                    
+                    
+                    // SEE THE OUTPUT
+                    //
+                    //
+
+                    
+                    
+                    
+                    
+                    
+                    
+                    
                    int f = Size1-1;
    int g = Size2-1;
    String diffs = "";
+   /*
+   Boolean ReportBlanks = false;
    while ((f>=0)&&(g>=0))
    {
 //System.out.println("f="+f+" g="+g);
@@ -276,55 +304,48 @@ if ((i <= Size1-1) && (j <= Size2-1))
        
        if (updist < getFD(f,g,DPTable))
        {
-          action = FTree.findNode(f).getLabel() + " REMOVED("+f+"), ";
-          diffs = diffs + action;
+    	   // debug version
+    	   // action = FTree.findNode(f).getLabel() + "[" + FTree.findNode(f).getLabelerValue(labeler) + "] REMOVED("+f+")\n";
+    	   if ((ReportBlanks) || (!FTree.findNode(f).getLabelerValue(labeler).equals("")))
+    	   {
+	    	   action = FTree.findNode(f).getLabel() + 
+	        		   "[" + 
+	        		   FTree.findNode(f).getLabelerValue(labeler) + 
+	        		   "] REMOVED\n";
+	           diffs = diffs + action;
+    	   }
        }
        else if (diagdist < getFD(f,g,DPTable))
        {
-          action = FTree.findNode(f).getLabel() + " RENAMED to " + GTree.findNode(g).getLabel() + " ("+f+","+g+"), ";
-          diffs = diffs + action;
+    	   // debug version
+           //action = FTree.findNode(f).getLabel() + "[" + FTree.findNode(f).getLabelerValue(labeler) + "] RENAMED to " + GTree.findNode(g).getLabel() + "[" + FTree.findNode(g).getLabelerValue(labeler) + "] ("+f+","+g+")\n";
+    	   if ((ReportBlanks) || (!FTree.findNode(f).getLabelerValue(labeler).equals(""))  || (!GTree.findNode(g).getLabelerValue(labeler).equals("")))
+    	   {
+	           action = FTree.findNode(f).getLabel() + 
+	        		    "[" + 
+	        		    FTree.findNode(f).getLabelerValue(labeler) + 
+	        		    "] RENAMED to " + 
+	        		    GTree.findNode(g).getLabel() + 
+	        		    "[" + 
+	        		    GTree.findNode(g).getLabelerValue(labeler) + 
+	        		    "]\n";
+	           diffs = diffs + action;
+    	   }
        }
        else if (leftdist < getFD(f,g,DPTable))
        {
-          action = GTree.findNode(g).getLabel() + " INSERTED ("+g+"), ";
-          diffs = diffs + action;
+    	   // debug version
+           //action = GTree.findNode(g).getLabel() + " INSERTED ("+g+")\n";
+    	   if ((ReportBlanks) || (!GTree.findNode(g).getLabelerValue(labeler).equals("")))
+    	   {
+	           action = GTree.findNode(g).getLabel() + 
+	        		   "[" + 
+	        		   GTree.findNode(g).getLabelerValue(labeler) + 
+	        		   "] INSERTED\n";
+	           diffs = diffs + action;
+    	   }
        }
        
-/*       if ((updist < leftdist) && (updist < diagdist))
-       {
-//System.out.println(" up f="+f+" g="+g);
-          mindist = updist;
-          if (mindist < getFD(f,g,DPTable))
-          {
-          action = FTree.FindNode(f).GetToken() + " REMOVED("+f+"), ";
-          diffs = diffs + action;
-          }
-          f = f - 1;
-       }
-       else if ((leftdist < updist) && (leftdist < diagdist))
-       {
-//System.out.println(" left f="+f+" g="+g);
-          mindist = leftdist;
-          if (mindist < getFD(f,g,DPTable))
-          {
-          action = GTree.FindNode(g).GetToken() + " INSERTED ("+g+"), ";
-          diffs = diffs + action;
-          }
-          g = g - 1;
-       }
-       else if ((diagdist < updist) && (diagdist < leftdist))
-       {
-//System.out.println(" diag f="+f+" g="+g);
-          mindist = diagdist;
-          if (mindist < getFD(f,g,DPTable))
-          {
-            action = FTree.FindNode(f).GetToken() + " RENAMED to " + GTree.FindNode(g).GetToken() + " ("+f+","+g+"), ";
-            diffs = diffs + action;
-          }
-          f = f - 1;
-          g = g - 1;
-       }
-       else*/
        {
           // find the minimums
           mindist = diagdist;
@@ -344,12 +365,21 @@ if ((i <= Size1-1) && (j <= Size2-1))
               g = g - 1;
        }
    }
-if (!diffs.equals(""))
-{
-//     seeFD(DPTable); //trace
-   System.out.println("FINAL GLORY - > " + diffs);
-   }
+   */
+/*
+                    if (!diffs.equals(""))
+			{
+//			     seeFD(DPTable); //trace
+				FinalDPTable = DPTable;
+			   System.out.println("FINAL GLORY - > \n" + diffs);
+			   }
+*/
+   FinalDPTable = DPTable;
+			   
             }
+//System.out.println("ASD");
+//            seeFD(FinalDPTable); //trace
+
         }
 
 //   //Return result
@@ -368,6 +398,107 @@ if (!diffs.equals(""))
         return transform;
     }
 
+    public String reportDifferences()
+    {
+//		   seeFD(FinalDPTable);
+        int f = Size1-1;
+		int g = Size2-1;
+		String diffs = "";
+		Boolean ReportBlanks = false;
+		while ((f>=0)&&(g>=0))
+		{
+			//System.out.println("f="+f+" g="+g);
+			String action = "UNKNOWN";
+			Double updist = getFD((f-1),g,FinalDPTable);
+			Double leftdist = getFD(f,(g-1),FinalDPTable);
+			Double diagdist = getFD((f-1),(g-1),FinalDPTable);
+			Double mindist = -1.0;
+			//System.out.println("dist="+getFD(f,g,DPTable)+" updist="+updist+" leftdist="+leftdist+" diagdist="+diagdist);
+			
+			// find the minimums
+			mindist = diagdist;
+			if (updist < mindist)
+			mindist = updist;
+			if (leftdist < mindist)
+			mindist = leftdist;
+
+//			diffs = diffs + diagdist + " " + getFD(f,g,FinalDPTable) + " %n";
+			if (updist < getFD(f,g,FinalDPTable))
+			{
+				// debug version
+				// action = FTree.findNode(f).getLabel() + "[" + FTree.findNode(f).getLabelerValue(labeler) + "] REMOVED("+f+")%n";
+				if ((ReportBlanks) || (!FTree.findNode(f).getLabelerValue(labeler).equals("")))
+				{
+				   action = FTree.findNode(f).getLabel() + 
+			 		   "[" + 
+			 		   FTree.findNode(f).getLabelerValue(labeler) + 
+			 		   "] REMOVED%n";
+				    diffs = diffs + action;
+				}
+			}
+			else if (diagdist < getFD(f,g,FinalDPTable))
+			{
+				// debug version
+				//action = FTree.findNode(f).getLabel() + "[" + FTree.findNode(f).getLabelerValue(labeler) + "] RENAMED to " + GTree.findNode(g).getLabel() + "[" + FTree.findNode(g).getLabelerValue(labeler) + "] ("+f+","+g+")\n";
+				if ((ReportBlanks) || (!FTree.findNode(f).getLabelerValue(labeler).equals(""))  || (!GTree.findNode(g).getLabelerValue(labeler).equals("")))
+				{
+				    action = FTree.findNode(f).getLabel() + 
+				 		    "[" + 
+				 		    FTree.findNode(f).getLabelerValue(labeler) + 
+				 		    "] RENAMED to " + 
+				 		    GTree.findNode(g).getLabel() + 
+				 		    "[" + 
+				 		    GTree.findNode(g).getLabelerValue(labeler) + 
+				 		    "]%n";
+				//           diffs = diffs + action;
+				//           int flabel = Integer.parseInt(FTree.findNode(f).getLabel());
+				//           int glabel = Integer.parseInt(FTree.findNode(g).getLabel());
+				//           action = FTree.findNode(f).getLabel() + "[" + FTree.findNode(flabel).getLabelerValue(labeler) + "] RENAMED to " + GTree.findNode(g).getLabel() + "[" + FTree.findNode(glabel).getLabelerValue(labeler) + "] ("+f+","+g+")\n";
+				    diffs = diffs + action;
+				}
+			}
+			else if (leftdist < getFD(f,g,FinalDPTable))
+			{
+				// debug version
+				//action = GTree.findNode(g).getLabel() + " INSERTED ("+g+")%n";
+				if ((ReportBlanks) || (!GTree.findNode(g).getLabelerValue(labeler).equals("")))
+				{
+				    action = GTree.findNode(g).getLabel() + 
+				 		   "[" + 
+				 		   GTree.findNode(g).getLabelerValue(labeler) + 
+				 		   "] INSERTED%n";
+				    diffs = diffs + action;
+				}
+			}
+			// find the minimums
+			mindist = diagdist;
+			if (updist < mindist)
+			   mindist = updist;
+			if (leftdist < mindist)
+			   mindist = leftdist;
+			
+			if (diagdist <= mindist)
+			{
+			   f = f - 1;
+			   g = g - 1;
+			}
+			else if (updist <= mindist)
+			   f = f - 1;
+			else
+			   g = g - 1;
+		}
+		if (!diffs.equals(""))
+		{
+			//seeFD(FinalDPTable); //trace
+			diffs = "FINAL GLORY - > %n" + diffs;
+		}
+		else
+		{
+			diffs = "FINAL GLORY - > NO DIFFERENCES";
+		}
+		return diffs;
+    }
+    
     /** The initiating call should be to the root node of the tree.
      * It fills in an nxn (hash) table of the leftmost leaf for a
      * given node.  It also compiles an array of key roots. The
@@ -448,20 +579,22 @@ if (!diffs.equals(""))
      */
     private double getFD(int a, int b,
            Hashtable<Integer, Hashtable<Integer,Double>> 
-           forestDistance) {
+           forestDistance) 
+    {
+		  Hashtable<Integer, Double> rows = null;
+		  if (!forestDistance.containsKey(a)) 
+		  {
+		//        System.out.println("getFD: creating new aStr entry.");
+		      forestDistance.put(a, new Hashtable<Integer, Double>());
+		  }
 
-  Hashtable<Integer, Double> rows = null;
-  if (!forestDistance.containsKey(a)) {
-//        System.out.println("getFD: creating new aStr entry.");
-      forestDistance.put(a, new Hashtable<Integer, Double>());
-  }
-
-  rows = forestDistance.get(a);
-  if (!rows.containsKey(b)) {
+		  rows = forestDistance.get(a);
+		  if (!rows.containsKey(b)) 
+		  {
 //       System.out.println("creating new bStr entry.");
-      rows.put(b, 0.0);
-  }
-  return rows.get(b);
+		      rows.put(b, 0.0);
+		  }
+		  return rows.get(b);
     }
 
 
