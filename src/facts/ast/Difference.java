@@ -21,7 +21,7 @@ import facts.diff.TreeEditOperation;
 
 public class Difference
 {
-    private NodeLabeler labeler;
+    private TreeBuilder labeler;
     private TreeNode treeA;
     private TreeNode treeB;
     private int indexAfterA;
@@ -34,23 +34,15 @@ public class Difference
         PrintStream out = SystemUtil.getOutStream();
         out.printf("%s parsed to:%n<<<%s>>>%n%n", filenameA, astA);
         out.printf("%s parsed to:%n<<<%s>>>%n%n", filenameB, astB);
-        this.labeler = new NodeLabeler();
-        this.treeA = labeler.label(astA);
-        this.indexAfterA = labeler.getNextIndex();
-        this.treeB = labeler.label(astB);
-        this.indexAfterB = labeler.getNextIndex();
+        this.labeler = new SyntacticTreeBuilder();
+        this.treeA = labeler.buildTree(astA);
+        this.treeB = labeler.buildTree(astB);
     }
 
     public String getResults() {
         StringBuilder out = new StringBuilder();
-        out.append(treeA.prettyPrint(labeler));
-        out.append(String.format("%nIndex after A: %d%nIndex after B: %d%n",
-                indexAfterA, indexAfterB));
-        out.append(String.format("%nNew indecies for tree B:%n"));
-        for (int i = indexAfterA; i < indexAfterB; ++i) {
-            out.append(String.format(" + %d: %s%n", i, labeler.getAnnotatedIndexedItem(i)));
-        }
-        out.append("THIS IS A TEST");
+        out.append(labeler.prettyPrint(treeA));
+        out.append(labeler.prettyPrint(treeB));
         ComparisonZhangShasha ZS = new ComparisonZhangShasha();
         OpsZhangShasha costs = new OpsZhangShasha();
         Transformation transform = ZS.findDistance(treeA, treeB, costs, out, labeler);

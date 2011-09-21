@@ -28,38 +28,6 @@ public class TreeNode
         }
     }
 
-    public String prettyPrint(NodeLabeler labeler) {
-        StringBuilder buff = new StringBuilder();
-        prettyPrint(labeler, this, buff, new Indenter("   "));
-        return buff.toString();
-    }
-
-    private static void prettyPrint(NodeLabeler labeler, TreeNode treeNode, StringBuilder buff,
-            Indenter indenter) {
-        buff.append('(');
-        buff.append(treeNode.label);
-        if (!treeNode.children.isEmpty()) {
-            buff.append(':');
-            indenter.indent();
-            buff.append(indenter.newLine());
-            for (TreeNode child : treeNode.children) {
-                Integer parsedLabel = Integer.valueOf(child.label);
-                if (labeler.hasStringRep(parsedLabel)) {
-                    buff.append(child.label);
-                    buff.append(':');
-                    buff.append(labeler.getStringRep(parsedLabel));
-                    buff.append(indenter.newLine());
-                }
-                else {
-                    prettyPrint(labeler, child, buff, indenter);
-                }
-            }
-            indenter.unindent();
-        }
-        buff.append(')');
-        buff.append(indenter.newLine());
-    }
-
     public TreeNode findNode(int postOrderID) {
         if (this.postOrderID == postOrderID) {
             return this;

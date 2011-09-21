@@ -6,7 +6,7 @@ import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.TreeSet;
 
-import facts.ast.NodeLabeler;
+import facts.ast.TreeBuilder;
 import facts.ast.TreeNode;
 
 
@@ -29,7 +29,7 @@ public class ComparisonZhangShasha
 //    private Hashtable<String, Hashtable<String, Double>> forestDistance = null; TODO: never read
     private double[][] distance = null;
 
-    public Transformation findDistance (TreeNode FTree, TreeNode GTree, OpsZhangShasha ops, StringBuilder out, NodeLabeler labeler) 
+    public Transformation findDistance (TreeNode FTree, TreeNode GTree, OpsZhangShasha ops, StringBuilder out, TreeBuilder labeler) 
     {  
         //This is initialized to be n+1 * m+1.  It should really be n*m
         //but because of java's zero indexing, the for loops would

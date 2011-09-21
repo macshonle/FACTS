@@ -1,34 +1,24 @@
 package facts.ast;
 
 import java.io.PrintStream;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
-import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.StructuralPropertyDescriptor;
 
 import edu.utsa.eclipse.SystemUtil;
 import edu.utsa.exceptions.PluginError;
+import edu.utsa.strings.Indenter;
 import edu.utsa.strings.StringUtil;
 
-public class NodeLabeler
+public class UniqueTreeBuilder extends TreeBuilder
 {
-    public static final int NULL_ID = 0;
-    public static final int LIST_ID = 1;
-    public static final int FIRST_ID = 2;
-
-    private static Map<Class<? extends ASTNode>, StructuralPropertyDescriptor[]> lookup;
-
-    static {
-        // Because we use reflection to get the SPDs for a type, we use a lookup
-        // table to reduce the number of reflective calls
-        NodeLabeler.lookup = new ConcurrentHashMap<Class<? extends ASTNode>, StructuralPropertyDescriptor[]>();
-    }
+    private static final int NULL_ID = 0;
+    private static final int LIST_ID = 1;
+    private static final int FIRST_ID = 2;
 
     private int nextID = FIRST_ID;
     // TODO: Determine if all simple values behave well when hashed/compared
@@ -41,7 +31,7 @@ public class NodeLabeler
     private ArrayList<Object> keyValueLookup = new ArrayList<Object>();
     private ArrayList<String> valueAnnotationLookup = new ArrayList<String>();
 
-    public NodeLabeler() {
+    public UniqueTreeBuilder() {
         keyValueLookup.add(NULL_ID, "[null ID]");
         keyValueLookup.add(LIST_ID, "[list of AST nodes]");
         valueAnnotationLookup.add(NULL_ID, "[null ID]");
@@ -60,7 +50,7 @@ public class NodeLabeler
     // - They have the same AST NodeType
     // - They have the same number of children
     // - All children in all corresponding locations have the same values
-    public TreeNode label(ASTNode node) {
+    public TreeNode buildTree(ASTNode node) {
         PrintStream out = SystemUtil.getOutStream();
         StructuralPropertyDescriptor[] spds = getProperties(node);
 
@@ -94,7 +84,7 @@ public class NodeLabeler
                 else {
                     // TODO: We can short-cut nodes that we want to treat like
                     // token, like qualified names
-                    childTreeNode = label(child);
+                    childTreeNode = buildTree(child);
                 }
                 children.add(childTreeNode);
             }
@@ -102,7 +92,7 @@ public class NodeLabeler
                 List listOfASTs = (List)property;
                 List<TreeNode> listChildren = new ArrayList<TreeNode>();
                 for (Object obj : listOfASTs) {
-                    TreeNode subTree = label((ASTNode)obj);
+                    TreeNode subTree = buildTree((ASTNode)obj);
                     listChildren.add(subTree);
                 }
                 String listNodeKey = makeKey(LIST_ID, listChildren);
@@ -154,39 +144,6 @@ public class NodeLabeler
         return treeNodeKey;
     }
 
-    public static StructuralPropertyDescriptor[] getProperties(ASTNode node) {
-        Class<? extends ASTNode> nodeClass = node.getClass();
-        StructuralPropertyDescriptor[] spds = lookup.get(nodeClass);
-        if (spds == null) {
-            try {
-                Method method;
-                List properties;
-
-                method = nodeClass.getMethod("propertyDescriptors", int.class);
-                properties = (List)method.invoke(nodeClass, AST.JLS3);
-                spds = toArray(properties);
-                lookup.put(nodeClass, spds);
-            }
-            catch (RuntimeException e) {
-                throw e;
-            }
-            catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-        return spds;
-    }
-
-    private static StructuralPropertyDescriptor[] toArray(List list) {
-        StructuralPropertyDescriptor[] result;
-        result = new StructuralPropertyDescriptor[list.size()];
-        int i = 0;
-        for (Object o : list) {
-            result[i++] = (StructuralPropertyDescriptor)o;
-        }
-        return result;
-    }
-
     public boolean hasStringRep(int id) {
         if (keyValueLookup.size() > id) {
             Object value = keyValueLookup.get(id);
@@ -226,7 +183,7 @@ public class NodeLabeler
         Object object = keyValueLookup.get(id);
         return object;
     }
-    
+
     public String getAnnotatedIndexedItem(int id) {
         Object object = keyValueLookup.get(id);
         if (object instanceof SimpleProperty) {
@@ -235,5 +192,37 @@ public class NodeLabeler
         else {
             return String.format("%s#%s", valueAnnotationLookup.get(id), object.toString());
         }
+    }
+
+    public String prettyPrint(TreeNode treeNode) {
+        StringBuilder buff = new StringBuilder();
+        prettyPrint(this, treeNode, buff, new Indenter("   "));
+        return buff.toString();
+    }
+
+    private static void prettyPrint(UniqueTreeBuilder labeler, TreeNode treeNode,
+            StringBuilder buff, Indenter indenter) {
+        buff.append('(');
+        buff.append(treeNode.label);
+        if (!treeNode.children.isEmpty()) {
+            buff.append(':');
+            indenter.indent();
+            buff.append(indenter.newLine());
+            for (TreeNode child : treeNode.children) {
+                Integer parsedLabel = Integer.valueOf(child.label);
+                if (labeler.hasStringRep(parsedLabel)) {
+                    buff.append(child.label);
+                    buff.append(':');
+                    buff.append(labeler.getStringRep(parsedLabel));
+                    buff.append(indenter.newLine());
+                }
+                else {
+                    prettyPrint(labeler, child, buff, indenter);
+                }
+            }
+            indenter.unindent();
+        }
+        buff.append(')');
+        buff.append(indenter.newLine());
     }
 }
