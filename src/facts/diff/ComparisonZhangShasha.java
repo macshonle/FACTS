@@ -7,6 +7,7 @@ import java.util.Hashtable;
 
 import facts.ast.TreeNode;
 import facts.ast.UniqueTreeBuilder;
+import java.util.TreeSet;
 
 /**
  * This is an implementation of the Zhang and Shasha algorithm as
@@ -35,9 +36,10 @@ public class ComparisonZhangShasha
     private TreeNode GTree;
     private UniqueTreeBuilder labeler;
 
-    public Transformation findDistance(TreeNode _FTree, TreeNode _GTree, OpsZhangShasha ops,
+    public String findDistance(TreeNode _FTree, TreeNode _GTree, OpsZhangShasha ops,
             StringBuilder out, UniqueTreeBuilder _labeler) {
-        FTree = _FTree;
+    	String rval = "";
+    	FTree = _FTree;
         GTree = _GTree;
         labeler = _labeler;
         // This is initialized to be n+1 * m+1. It should really be n*m
@@ -70,7 +72,7 @@ public class ComparisonZhangShasha
                 Hashtable<Integer, Hashtable<Integer, Double>> DPTable = new Hashtable<Integer, Hashtable<Integer, Double>>();
                 setFD(aLeftLeaf.get(aKeyroot), bLeftLeaf.get(bKeyroot), 0.0d, DPTable);
 
-                // for all descendents of aKeyroot: i
+                // for all descendants of aKeyroot: i
                 for (int i = aLeftLeaf.get(aKeyroot); i <= aKeyroot; i++) {
                     setFD(i,
                             bLeftLeaf.get(bKeyroot) - 1,
@@ -79,7 +81,7 @@ public class ComparisonZhangShasha
                             DPTable);
                 }
 
-                // for all descendents of bKeyroot: j
+                // for all descendants of bKeyroot: j
                 for (int j = bLeftLeaf.get(bKeyroot); j <= bKeyroot; j++) {
                     setFD(aLeftLeaf.get(aKeyroot) - 1,
                             j,
@@ -88,7 +90,7 @@ public class ComparisonZhangShasha
                             DPTable);
                 }
 
-                // for all descendents of aKeyroot: i
+                // for all descendants of aKeyroot: i
                 for (int i = aLeftLeaf.get(aKeyroot); i <= aKeyroot; i++) {
                     // System.out.println("i: "+i);
 
@@ -131,6 +133,7 @@ public class ComparisonZhangShasha
                     }
                 }
                 FinalDPTable = DPTable;
+//                rval = seeFD(FinalDPTable);
             }
         }
 
@@ -138,76 +141,129 @@ public class ComparisonZhangShasha
         double _cost = distance[FTree.CountNodes(FTree.getLabel())][GTree.CountNodes(GTree
                 .getLabel())];
         transform.setCost(_cost);
-        return transform;
+        return rval;
     }
 
-    public String reportDifferences() {
-        int f = Size1 - 1;
+    public String reportDifferences(Boolean ReportBlanks) {
+        // flag on whether debug information should be used
+        Boolean debug = false;
+    	// the position in the DP table, initialized to the lower right hand corner
+    	int f = Size1 - 1;
         int g = Size2 - 1;
+        // get whichever is bigger
+        int MaxSize = Size1;
+        if(Size2 > MaxSize) MaxSize = Size2;
+        // the string of all the differences
         String diffs = "";
-        Boolean ReportBlanks = false;
+        // a collection of the differences
+        String[] thediffs = new String[MaxSize];
+        // the count of differences found
+        int diffcounter = 0;
+        // flags to indicate that we've detected an insert or delete action
+        Boolean InsertStarted = false;
+        Boolean DeleteStarted = false;
+        // while we haven't reached the upper left hand corner of the DP table
         while ((f >= 0) && (g >= 0)) {
-            String action = "UNKNOWN";
+        	// the detected change that was made
+        	String action = "UNKNOWN";
+        	// from the current cell in the DP table, get the value above, left and diagonal cells 
             Double updist = getFD((f - 1), g, FinalDPTable);
             Double leftdist = getFD(f, (g - 1), FinalDPTable);
             Double diagdist = getFD((f - 1), (g - 1), FinalDPTable);
-            Double mindist = -1.0;
-
-            // find the minimums
-            mindist = diagdist;
-            if (updist < mindist)
-                mindist = updist;
-            if (leftdist < mindist)
-                mindist = leftdist;
-
-            if (updist < getFD(f, g, FinalDPTable)) {
-                if ((ReportBlanks) || (!FTree.findNode(f).getLabelerValue(labeler).equals(""))) {
-                    action = String.format("%s[%s] REMOVED%n", FTree.findNode(f).getLabel(),
-                            FTree.findNode(f).getLabelerValue(labeler));
-                    diffs = diffs + action;
-                }
-            }
-            else if (diagdist < getFD(f, g, FinalDPTable)) {
-                if ((ReportBlanks) || (!FTree.findNode(f).getLabelerValue(labeler).equals(""))
+            // if the diagonal is less than the current cell (a change is detected) 
+            // and we're not inserting or deleting...
+            if ((diagdist < getFD(f, g, FinalDPTable)) &&
+                    (!InsertStarted) && (!DeleteStarted)) {
+            	// if this is a reportable change
+            	if ((ReportBlanks) || (!FTree.findNode(f).getLabelerValue(labeler).equals(""))
                         || (!GTree.findNode(g).getLabelerValue(labeler).equals(""))) {
-                    action = String.format("%s[%s] RENAMED to %s[%s]%n",
-                            FTree.findNode(f).getLabel(),
-                            FTree.findNode(f).getLabelerValue(labeler),
-                            GTree.findNode(g).getLabel(),
-                            GTree.findNode(g).getLabelerValue(labeler));
-                    diffs = diffs + action;
+            		// report the change
+            		if (debug)
+	                    action = String.format("id=%s value=%s CHANGED to id=%s value=%s <%s:%s:%s>%n",
+	                            FTree.findNode(f).getLabel(),
+	                            FTree.findNode(f).getLabelerValue(labeler),
+	                            GTree.findNode(g).getLabel(),
+	                            GTree.findNode(g).getLabelerValue(labeler),getFD(f, g, FinalDPTable),f,g);
+                	else
+	                    action = String.format("id=%s value=%s CHANGED to id=%s value=%s%n",
+	                            FTree.findNode(f).getLabel(),
+	                            FTree.findNode(f).getLabelerValue(labeler),
+	                            GTree.findNode(g).getLabel(),
+	                            GTree.findNode(g).getLabelerValue(labeler));
+	                    thediffs[diffcounter++] = action;
                 }
             }
-            else if (leftdist < getFD(f, g, FinalDPTable)) {
+            // if an insert was detected
+            else if (InsertStarted) {
+            	// if this is a reportable change
                 if ((ReportBlanks) || (!GTree.findNode(g).getLabelerValue(labeler).equals(""))) {
-                    action = String.format("%s[%s] INSERTED%n", GTree.findNode(g).getLabel(),
-                            GTree.findNode(g).getLabelerValue(labeler));
-                    diffs = diffs + action;
+            		// report the change
+                	if (debug)
+	                	action = String.format("id=%s value=%s INSERTED <%s:%s:%s>%n", GTree.findNode(g).getLabel(),
+	                            GTree.findNode(g).getLabelerValue(labeler),getFD(f, g, FinalDPTable),f,g);
+                	else
+	                	action = String.format("id=%s value=%s INSERTED%n", GTree.findNode(g).getLabel(),
+	                            GTree.findNode(g).getLabelerValue(labeler));
+                    thediffs[diffcounter++] = action;
                 }
             }
-            // find the minimums
-            mindist = diagdist;
-            if (updist < mindist)
-                mindist = updist;
-            if (leftdist < mindist)
-                mindist = leftdist;
-
-            if (diagdist <= mindist) {
+            // if a delete was detected
+            else if (DeleteStarted) {
+            	// if this is a reportable change
+                if ((ReportBlanks) || (!FTree.findNode(f).getLabelerValue(labeler).equals(""))) {
+            		// report the change
+                	if (debug)
+	                	action = String.format("id=%s value=%s REMOVED <%s:%s:%s>%n", FTree.findNode(f).getLabel(),
+	                            FTree.findNode(f).getLabelerValue(labeler),getFD(f, g, FinalDPTable),f,g);
+                	else
+	                	action = String.format("id=%s value=%s REMOVED%n", FTree.findNode(f).getLabel(),
+	                            FTree.findNode(f).getLabelerValue(labeler));
+                    thediffs[diffcounter++] = action;
+                }
+            }
+            // if we *must* go left, then an insert was detected
+            if ((leftdist < diagdist) && (leftdist < updist)) {
+                InsertStarted = true;
+                DeleteStarted = false;
+            }
+            // if we *must* go up, then a delete was detected
+            else if ((updist < diagdist) && (updist < leftdist)) {
+                InsertStarted = false;
+                DeleteStarted = true;
+            }
+            // if we *must* go diagonal, then cancel any insert or delete
+            else if ((diagdist < leftdist) && (diagdist < updist)) {
+                InsertStarted = false;
+                DeleteStarted = false;
+            }
+            // now if we *can* go left, do so
+            if ((leftdist <= getFD(f, g, FinalDPTable)) && (InsertStarted))
+                g = g - 1;
+            // now if we *can* go up, do so
+            else if ((updist <= getFD(f, g, FinalDPTable)) && (DeleteStarted))
+                f = f - 1;
+            // else go diagonal
+            else {
                 f = f - 1;
                 g = g - 1;
             }
-            else if (updist <= mindist)
-                f = f - 1;
-            else
-                g = g - 1;
         }
+
+        // reverse the differences found (since we found in reverse order)
+        diffs = "";
+        for (int i=diffcounter;i>=0;i--) {
+        	if (thediffs[i] != null)
+        	    diffs = diffs + thediffs[i];
+        }
+
+        // record all the changes to the string
         if (!diffs.isEmpty()) {
-            // seeFD(FinalDPTable); //trace
-            diffs = String.format("FINAL GLORY - > %n%s", diffs);
+            diffs = String.format("DIFFERENCES DETECTED:%n%s", diffs);
         }
         else {
-            diffs = "FINAL GLORY - > NO DIFFERENCES";
+            diffs = "DIFFERENCES DETECTED: No differences detected.";
         }
+        // return the differences found
         return diffs;
     }
 
@@ -309,4 +365,19 @@ public class ComparisonZhangShasha
         // }
         // }
     }
+
+    /** Returns a String for trace writes */    
+    private String seeFD(Hashtable<Integer, Hashtable<Integer,Double>>
+                       forestDistance) {
+    	String rval = String.format("Forest Distance");  
+    	//Return result  
+    	for (Integer i : new TreeSet<Integer>(forestDistance.keySet())) {
+    		rval = String.format("%s%s: ",rval,i);
+    		for (Integer j : new TreeSet<Integer>(forestDistance.get(i).keySet())) {
+        		rval = String.format("%s%s(%s)  ",rval,forestDistance.get(i).get(j),j);
+    			}
+    		rval = rval + String.format("%n");
+   		}
+    	return rval;
+   	}
 }
