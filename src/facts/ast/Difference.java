@@ -22,8 +22,12 @@ public class Difference
     private TreeBuilder treeBuilder;
     private TreeNode treeA;
     private TreeNode treeB;
+    private String fileA;
+    private String fileB;
 
     public Difference(String filenameA, String filenameB) throws IOException {
+    	fileA = filenameA;
+    	fileB = filenameB;
         ASTNode astA = parseFile(filenameA);
         ASTNode astB = parseFile(filenameB);
 
@@ -37,12 +41,12 @@ public class Difference
 
     public String getResults() {
         StringBuilder out = new StringBuilder();
-//        out.append(treeBuilder.prettyPrint(treeA));
-//        out.append(treeBuilder.prettyPrint(treeB));
+        //out.append(treeBuilder.prettyPrint(treeA));
+        //out.append(treeBuilder.prettyPrint(treeB));
         ComparisonZhangShasha ZS = new ComparisonZhangShasha();
         OpsZhangShasha costs = new OpsZhangShasha();
         out.append(ZS.findDistance(treeA, treeB, costs, out, (UniqueTreeBuilder)treeBuilder));
-        out.append(ZS.reportDifferences(false));
+        out.append(ZS.reportDifferences(false, fileA, fileB));
         return out.toString();
     }
 

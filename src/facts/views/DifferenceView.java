@@ -67,6 +67,10 @@ public class DifferenceView extends ViewPart
         this.memento = memento;
     }
 
+    public Combo getcommonFileSelection()
+    {
+      return commonFileSelection;
+    }
     // This is a callback that will allow us to create the viewer and initialize
     // it.
     public void createPartControl(Composite parent) {
@@ -165,8 +169,10 @@ public class DifferenceView extends ViewPart
                     String filenameB = String.format("%s%s", dirBTextArea.getText(), selection);
                     try {
                         final Difference diff = new Difference(filenameA, filenameB);
-                        EclipseUIUtil.guiExec(new Runnable() {
-                            public void run() {
+                        EclipseUIUtil.guiExec(new Runnable() 
+                        {
+                            public void run() 
+                            {
                                 outputTextArea.setText(diff.getResults());
                             }
                         });

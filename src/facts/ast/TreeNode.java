@@ -12,6 +12,7 @@ public class TreeNode
     public int postOrderID;
     public List<TreeNode> children = new ArrayList<TreeNode>();
     private int treeSize = -1 /*our memoized size*/;
+    public int lineNum = -1;
 
     public TreeNode(String label) {
         this.label = label;
