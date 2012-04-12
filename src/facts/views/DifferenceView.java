@@ -169,13 +169,14 @@ public class DifferenceView extends ViewPart
                     String filenameB = String.format("%s%s", dirBTextArea.getText(), selection);
                     try {
                         final Difference diff = new Difference(filenameA, filenameB);
-                        EclipseUIUtil.guiExec(new Runnable() 
-                        {
-                            public void run() 
-                            {
+                        i = 2;
+//                        EclipseUIUtil.guiExec(new Runnable() 
+//                        {
+//                            public void run() 
+//                            {
                                 outputTextArea.setText(diff.getResults());
-                            }
-                        });
+//                            }
+//                        });
                     }
                     catch (Exception e) {
                         throw new PluginError(e);

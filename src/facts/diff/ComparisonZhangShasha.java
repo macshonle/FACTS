@@ -9,6 +9,9 @@ import facts.ast.TreeNode;
 import facts.ast.UniqueTreeBuilder;
 import java.util.TreeSet;
 import java.io.*;
+import java.util.Date;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 
 /**
  * This is an implementation of the Zhang and Shasha algorithm as
@@ -29,15 +32,19 @@ public class ComparisonZhangShasha
     // has no real consequence. ie. There are NO public side effects.
     // private Hashtable<String, Hashtable<String, Double>> forestDistance =
     // null; TODO: never read
-    private double[][] distance = null;
+    private int[][] distance = null;
+    private int[][] memoize = null;
+    private int[] aLeftLeaf2 = null;
+    private int[] bLeftLeaf2 = null;
     private int Size1 = -1;
     private int Size2 = -1;
     // Hashtable<FTree.key, Hashtable<GTree.key, FD from FTree to GTree>>
-    private Hashtable<Integer, Hashtable<Integer, Double>> FinalDPTable = new Hashtable<Integer, Hashtable<Integer, Double>>();
+//    private Hashtable<Integer, Hashtable<Integer, Integer>> FinalDPTable = new Hashtable<Integer, Hashtable<Integer, Integer>>();
+    private int[][] FinalDPTable2 = null;
     private TreeNode FTree;
     private TreeNode GTree;
     private UniqueTreeBuilder labeler;
-    private Boolean ShowSingleChange = false;
+    private Boolean ShowSingleChange = true;
     private Boolean ShowLineChange = true;
     
     public String findDistance(TreeNode _FTree, TreeNode _GTree, OpsZhangShasha ops,
@@ -55,7 +62,16 @@ public class ComparisonZhangShasha
         // double[FTree.getNodeCount()+1][GTree.getNodeCount()+1];
         Size1 = FTree.CountNodes(FTree.getLabel()) + 1;
         Size2 = GTree.CountNodes(GTree.getLabel()) + 1;
-        distance = new double[Size1][Size2];
+        System.out.println("FTree size = "+Size1);
+        System.out.println("GTree size = "+Size2);
+        distance = new int[Size1][Size2];
+//        memoize = new int[Size1][Size2];
+        for (int i=0;i<Size1;i++)
+        	for (int j=0;j<Size2;j++)
+        	{
+        		distance[i][j] = -1;
+//        		memoize[i][j] = -1;
+        	}
         // set the post ordering ids
         FTree.setPostOrdering(0);
         GTree.setPostOrdering(0);
@@ -64,100 +80,134 @@ public class ComparisonZhangShasha
         // For example:
         //   55=1 means that for the node with post-order ID of 55,
         //           the left most leaf has post-order ID of 1
-        Hashtable<Integer, Integer> aLeftLeaf = new Hashtable<Integer, Integer>();
-        Hashtable<Integer, Integer> bLeftLeaf = new Hashtable<Integer, Integer>();
+//        Hashtable<Integer, Integer> aLeftLeaf = new Hashtable<Integer, Integer>();
+//        Hashtable<Integer, Integer> bLeftLeaf = new Hashtable<Integer, Integer>();
+        aLeftLeaf2 = new int[Size1];
+        bLeftLeaf2 = new int[Size2];
         // keyroots are the root and where the node has a left sibling
         ArrayList<Integer> FTreeKeyRoots = new ArrayList<Integer>();
         ArrayList<Integer> GTreeKeyRoots = new ArrayList<Integer>();
         // now find the leftmost leaf and all the keyroots
-        findHelperTables(FTree, aLeftLeaf, FTreeKeyRoots, FTree.GetPostOrderID());
-        findHelperTables(GTree, bLeftLeaf, GTreeKeyRoots, GTree.GetPostOrderID());
+        System.out.println("ASD");
+        findHelperTables(FTree, aLeftLeaf2, FTreeKeyRoots, FTree.GetPostOrderID());
+        System.out.println("FGH");
+        findHelperTables(GTree, bLeftLeaf2, GTreeKeyRoots, GTree.GetPostOrderID());
+        DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+        int keytrigger = 0;
 
         // for each keyroot combination
         for (Integer aKeyroot : FTreeKeyRoots) { // aKeyroot loop
+        	if (aKeyroot > keytrigger){
+        		System.out.println("aKeyroot="+aKeyroot+" "+dateFormat.format(new Date()));
+        		keytrigger = keytrigger + 1;
+        	}
             for (Integer bKeyroot : GTreeKeyRoots) { // bKeyroot loop
+                int flabel = Integer.parseInt(FTree.findNode(aKeyroot).getLabel());
+                int glabel = Integer.parseInt(GTree.findNode(bKeyroot).getLabel());
                 // Re-initialize forest distance tables
-                Hashtable<Integer, Hashtable<Integer, Double>> DPTable = new Hashtable<Integer, Hashtable<Integer, Double>>();
-                setFD(aLeftLeaf.get(aKeyroot), bLeftLeaf.get(bKeyroot), 0.0d, DPTable);
+//                Hashtable<Integer, Hashtable<Integer, Integer>> DPTable = new Hashtable<Integer, Hashtable<Integer, Integer>>();
+                int[][] DPTable2 = new int[Size1][Size2];
+//                setFD(aLeftLeaf.get(aKeyroot), bLeftLeaf.get(bKeyroot), 0, DPTable);
+                setFD(aLeftLeaf2[aKeyroot], bLeftLeaf2[bKeyroot], 0, DPTable2);
 
                 // for all descendants of aKeyroot: i
-                for (int i = aLeftLeaf.get(aKeyroot); i <= aKeyroot; i++) {
+                for (int i = aLeftLeaf2[aKeyroot]; i <= aKeyroot; i++) {
                     setFD(i,
-                            bLeftLeaf.get(bKeyroot) - 1,
-                            getFD(i - 1, bLeftLeaf.get(bKeyroot) - 1, DPTable)
+                            bLeftLeaf2[bKeyroot] - 1,
+                            getFD(i - 1, bLeftLeaf2[bKeyroot] - 1, DPTable2)
                                     + ops.getOp(OpsZhangShasha.DELETE).getCost(i, 0, FTree, GTree),
-                            DPTable);
+                            DPTable2);
                 }
 
                 // for all descendants of bKeyroot: j
-                for (int j = bLeftLeaf.get(bKeyroot); j <= bKeyroot; j++) {
-                    setFD(aLeftLeaf.get(aKeyroot) - 1,
+                for (int j = bLeftLeaf2[bKeyroot]; j <= bKeyroot; j++) {
+                    setFD(aLeftLeaf2[aKeyroot] - 1,
                             j,
-                            getFD(aLeftLeaf.get(aKeyroot) - 1, j - 1, DPTable)
+                            getFD(aLeftLeaf2[aKeyroot] - 1, j - 1, DPTable2)
                                     + ops.getOp(OpsZhangShasha.INSERT).getCost(0, j, FTree, GTree),
-                            DPTable);
+                            DPTable2);
                 }
+//            	if (aKeyroot == 1217)
+//            		System.out.println("aKeyroot="+aKeyroot + " bKeyroot(2)="+bKeyroot+" "+dateFormat.format(new Date()));
+
 
                 // for all descendants of aKeyroot: i
-                for (int i = aLeftLeaf.get(aKeyroot); i <= aKeyroot; i++) {
+                for (int i = aLeftLeaf2[aKeyroot]; i <= aKeyroot; i++) {
                     // System.out.println("i: "+i);
 
                     // for all descendents of bKeyroot: j
-                    for (int j = bLeftLeaf.get(bKeyroot); j <= bKeyroot; j++) {
+                    for (int j = bLeftLeaf2[bKeyroot]; j <= bKeyroot; j++) {
                     	
+                        //if (memoize[flabel][glabel] == -1)
+                        //{
                     	///////////////////////////////////////////////
                     	// RIGHT HERE!  SEE IF THERE IS A WAY TO TELL
                     	// IF WE'VE ALREADY CALCULATED SUCH A FD BASED
                     	// UPON THE ROOT NUMBER AND SAVE OURSELVES THIS
                     	// CALCULATION
                     	///////////////////////////////////////////////
-                    	
-                    	
+                    			
                         // This min compares del vs ins
-                        double min = java.lang.Math.min(
-                                getFD(i - 1, j, DPTable)
+                        Integer min = (int)java.lang.Math.min(
+                                getFD(i - 1, j, DPTable2)
                                         + ops.getOp(OpsZhangShasha.DELETE).getCost(i, 0, FTree,
                                                 GTree),// Option 1: Delete node
                                                        // from FTree
-                                getFD(i, j - 1, DPTable)
+                                getFD(i, j - 1, DPTable2)
                                         + ops.getOp(OpsZhangShasha.INSERT).getCost(0, j, FTree,
                                                 GTree)// Option 2: Insert node
                                                       // into GTree
                         );
 
-                        if ((aLeftLeaf.get(i) == aLeftLeaf.get(aKeyroot)) &&
-                                (bLeftLeaf.get(j) == bLeftLeaf.get(bKeyroot))) {
+                        if ((aLeftLeaf2[i] == aLeftLeaf2[aKeyroot]) &&
+                                (bLeftLeaf2[j] == bLeftLeaf2[bKeyroot])) {
 
                             if ((i <= Size1 - 1) && (j <= Size2 - 1))
-                                distance[i][j] = min(
+                                distance[i][j] = (int)min(
                                         min,
-                                        getFD(i - 1, j - 1, DPTable)
+                                        getFD(i - 1, j - 1, DPTable2)
                                                 + ops.getOp(OpsZhangShasha.RENAME).getCost(i, j,
                                                         FTree, GTree));
 
                             if ((i <= Size1 - 1) && (j <= Size2 - 1))
-                                setFD(i, j, distance[i][j], DPTable);
+                                setFD(i, j, distance[i][j], DPTable2);
                         }
                         else {
                             setFD(i,
                                     j,
                                     java.lang.Math.min(
                                             min,
-                                            getFD(aLeftLeaf.get(i) - 1, bLeftLeaf.get(j) - 1,
-                                                    DPTable) + distance[i][j]),
-                                    DPTable);
-                        }
+                                            getFD(aLeftLeaf2[i] - 1, bLeftLeaf2[j] - 1,
+                                                    DPTable2) + distance[i][j]),
+                                    DPTable2);
+                    	}
+                      //}
                     }
                 }
-                FinalDPTable = DPTable;
-//                rval = seeFD(FinalDPTable);
+
+//            	if (aKeyroot == 1217)
+//            		System.out.println("aKeyroot="+aKeyroot + " bKeyroot(3)="+bKeyroot+" "+dateFormat.format(new Date()));
+//                memoize[flabel][glabel] = getFD(aKeyroot, bKeyroot, DPTable);
+//                FinalDPTable = null;
+//              	FinalDPTable = DPTable;
+              	FinalDPTable2 = DPTable2;
+//                DPTable = null;
+//              rval = seeFD(FinalDPTable);
             }
         }
 
+//        for (int i=0;i<Size1;i++)
+//        {
+//            for (int j=0;j<Size2;j++)
+//            	System.out.print(memoize[i][j]+ " ");
+//        	System.out.println();
+//        }
         Transformation transform = new Transformation();
-        double _cost = distance[FTree.CountNodes(FTree.getLabel())][GTree.CountNodes(GTree
+        Integer _cost = distance[FTree.CountNodes(FTree.getLabel())][GTree.CountNodes(GTree
                 .getLabel())];
         transform.setCost(_cost);
+
+//               rval = seeFDfile(FinalDPTable2);
         return rval;
     }
 
@@ -194,6 +244,9 @@ public class ComparisonZhangShasha
             	  if (nstr.indexOf("//") != -1)
             		  nstr = nstr.substring(0,nstr.indexOf("//"));
             	  nstr = nstr.trim();
+//            	  nstr = nstr.replace("true","TRUESPECIAL");
+//            	  nstr = nstr.replace("false","FALSESPECIAL");
+//            	  nstr = nstr.replace("0","ZEROSPECIAL");
             	  if (!(nstr.equals("")))
        			  {
             		  if (!commentstarted)
@@ -214,61 +267,170 @@ public class ComparisonZhangShasha
     
     public void SetLineNums(TreeNode tree, String[] code, int treesize)
     {
-    	int codepos = 0;
-    	String curstr = code[codepos];
-    	for (int i=0;i<treesize;i++)
-    	{
-    		if (tree.findNode(i) != null)
-    		{
-        		if (tree.findNode(i).getLabelerValue(labeler) != null)
-        		{
-		    		String lbl = tree.findNode(i).getLabelerValue(labeler);
-		    		if (!(lbl.equals("")))
-		    		{
-		    			System.out.println(lbl);
-		    			if (curstr != null)
-		    			{
-			    			if (curstr.indexOf(lbl) != -1)
-			    			{
-			    				tree.findNode(i).lineNum = codepos+1;
-			    				curstr = curstr.substring(curstr.indexOf(lbl)+lbl.length());
-			    			}
-			    			else if ((!lbl.equals("true")) && (!lbl.equals("false")) && (!lbl.equals("0")))
-			    			{
-			    				Boolean lblfound = false;
-			    				while ((!lblfound) && (codepos < 1000))
-			    				{
-			    					codepos++;
-			    					curstr = code[codepos];
-			    					if (curstr == null)
-			    						codepos = 1000;
-			    					else if (curstr.indexOf(lbl) != -1)
-					    			{
-					    				tree.findNode(i).lineNum = codepos+1;
-					    				curstr = curstr.substring(curstr.indexOf(lbl)+lbl.length());
-					    				lblfound = true;
-					    			}
-			    				}
-			    			}
-		    			}
-		    		}
-        		}
-    		}
-    	}
-    }
+    	int x = 9;
+		int codepos = 0;
+		String curstr = code[codepos];
+		int treepos = 0;
+		String[] treelist = new String[4000];
+		int treelistsize = 0;
+		for (int i = 0; i < treesize; i++) {
+			if (tree.findNode(i) != null) {
+				if (tree.findNode(i).getLabelerValue(labeler) != null) {
+					String lbl = tree.findNode(i).getLabelerValue(labeler);
+					if (!(lbl.equals(""))) {
+						treelist[treepos] = lbl;
+						treepos++;
+					}
+				}
+			}
+		}
+		treelistsize = treepos;
+		treepos = 0;
+		for (int i = 0; i < treesize; i++) {
+			if (tree.findNode(i) != null) {
+				if (tree.findNode(i).getLabelerValue(labeler) != null) {
+					String lbl = tree.findNode(i).getLabelerValue(labeler);
+					if (!(lbl.equals(""))) {
+						// System.out.println(lbl);
+						if (lbl.equals(treelist[treepos])) {
+							treepos++;
+						}
+						if (curstr != null) {
+							if ((curstr.indexOf(lbl) != -1) &&
+								((!lbl.equals("true")) &&
+								 (!lbl.equals("false")) && 
+								 (!lbl.equals("0")))) {
+								tree.findNode(i).lineNum = codepos + 1;
+								// System.out.println(lbl+" A lineNum="+(codepos+1));
+								curstr = curstr.substring(curstr.indexOf(lbl) + lbl.length());
+							} else if ((!lbl.equals("true"))
+									&& (!lbl.equals("false"))
+									&& (!lbl.equals("0"))) {
+								Boolean lblfound = false;
+								while ((!lblfound) && (codepos < 1000))
+								{
+									codepos++;
+									if (codepos == 23)
+										System.out.println("AAA");
+									curstr = code[codepos];
+									if (curstr == null)
+										codepos = 1000;
+									else if (curstr.indexOf(lbl) != -1)
+									{
+										tree.findNode(i).lineNum = codepos + 1;
+										curstr = curstr.substring(curstr.indexOf(lbl) + lbl.length());
+										lblfound = true;
+									}
+								}
+							} else if ((lbl.equals("true"))
+									|| (lbl.equals("false"))
+									|| (lbl.equals("0"))) {
+								String nextnondeadtoken = "";
+								for (int j = treepos; j < treelistsize; j++)
+									if ((treelist[j] != "0") &&
+										(treelist[j] != "true") &&
+										(treelist[j] != "false")) {
+										nextnondeadtoken = treelist[j];
+										if (nextnondeadtoken.equals("0"))
+											nextnondeadtoken = "";
+										else if (nextnondeadtoken.equals("true"))
+											nextnondeadtoken = "";
+										else if (nextnondeadtoken.equals("false"))
+											nextnondeadtoken = "";
+										else
+											break;
+									}
+								Boolean deadtokenfound = false;
+								Boolean continueprocessing = true;
+								String curstr2 = curstr;
+								int codepos2 = codepos;
+								while (continueprocessing) {
+									if (curstr2.indexOf(lbl) != -1){
+										deadtokenfound = true;
+										continueprocessing = false;
+									}
+									else if (curstr2.indexOf(nextnondeadtoken) != -1){
+										continueprocessing = false;
+									}
+									else{
+										Boolean lbl2found = false;
+										while ((!lbl2found) && (codepos2 < 1000))
+										{
+											codepos2++;
+											curstr2 = code[codepos2];
+											if (curstr2 == null){
+												codepos2 = 1000;
+											}
+											else if (curstr2.indexOf(lbl) != -1)
+											{
+												deadtokenfound = true;
+												continueprocessing = false;
+												lbl2found = true;
+											} else if (curstr2.indexOf(nextnondeadtoken) != -1){
+												continueprocessing = false;
+												lbl2found = true;
+											}
+										}
+									}
+								}
+								if (deadtokenfound) {
+									if (lbl.equals(treelist[treepos])) {
+										treepos++;
+									}
+									if (curstr != null) {
+										if (curstr.indexOf(lbl) != -1) {
+											tree.findNode(i).lineNum = codepos + 1;
+											// System.out.println(lbl+" A lineNum="+(codepos+1));
+											curstr = curstr.substring(curstr.indexOf(lbl) + lbl.length());
+										} else {
+											Boolean lblfound = false;
+											while ((!lblfound) && (codepos < 1000))
+											{
+												codepos++;
+												if (codepos == 23)
+													x = codepos;
+												curstr = code[codepos];
+												if (curstr == null)
+													codepos = 1000;
+												else if (curstr.indexOf(lbl) != -1)
+												{
+													tree.findNode(i).lineNum = codepos + 1;
+													curstr = curstr.substring(curstr.indexOf(lbl) + lbl.length());
+													lblfound = true;
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+
+					}
+				}
+			}
+		}
+		codepos = x + codepos;
+		System.out.println(x);
+	}
 
     public String reportDifferences(Boolean ReportBlanks, String fileA, String fileB) {
     	
+    	ReportBlanks = true;
         String[] fileAlist = ConvertFileToString(fileA);
         String[] fileBlist = ConvertFileToString(fileB);
 
         SetLineNums(FTree, fileAlist, Size1);
         SetLineNums(GTree, fileBlist, Size2);
         
-        for (int i=0;i<1000;i++)
-        	if (fileAlist[i] != null)
-        		if (!(fileAlist[i].equals("")))
-        			System.out.println(fileAlist[i]);
+
+    	for (int i=0;i<=Size1;i++)
+    		if (GTree.findNode(i) != null)
+	    		if (GTree.findNode(i).lineNum > 0)
+	    			System.out.println(GTree.findNode(i).lineNum + " * " + GTree.findNode(i).getLabelerValue(labeler));
+//        for (int i=0;i<1000;i++)
+//        	if (fileAlist[i] != null)
+//        		if (!(fileAlist[i].equals("")))
+//        			System.out.println(fileAlist[i]);
         // flag on whether debug information should be used
         Boolean debug = false;
     	// the position in the DP table, initialized to the lower right hand corner
@@ -298,42 +460,121 @@ public class ComparisonZhangShasha
     	}
     	int gprev = -99;
     	int fprev = -99;
+    	int gline = 0;
+    	int fline = 0;
+    	int lastf = -99;
+    	int lastg = -99;
         // while we haven't reached the upper left hand corner of the DP table
-        while ((f >= 0) && (g >= 0)) {
+        while ((f != 0) && (g != 0)) {
         	// the detected change that was made
         	String action = "UNKNOWN";
+/*        	if (GTree.findNode(g) != null)
+        	{
+	        	action = String.format("Z id=%s value=%s ??? <%s:%s:%s>%n", 
+	        			GTree.findNode(g).getLabel(),
+	                    GTree.findNode(g).getLabelerValue(labeler),
+	                    getFD(f, g, FinalDPTable),f,g);
+	            thediffs[diffcounter++] = action;
+        	}
+        	else
+        	{
+	        	action = String.format("Z id=null value=null ??? <%s:%s:%s>%n", 
+	                    getFD(f, g, FinalDPTable),f,g);
+	            thediffs[diffcounter++] = action;
+        	}*/
         	// from the current cell in the DP table, get the value above, left and diagonal cells 
-            Double updist = getFD((f - 1), g, FinalDPTable);
-            Double leftdist = getFD(f, (g - 1), FinalDPTable);
-            Double diagdist = getFD((f - 1), (g - 1), FinalDPTable);
+            Integer updist = getFD((f - 1), g, FinalDPTable2);
+            Integer leftdist = getFD(f, (g - 1), FinalDPTable2);
+            Integer diagdist = getFD((f - 1), (g - 1), FinalDPTable2);
+            if (FTree.findNode(f) != null)
+            	fline = FTree.findNode(f).lineNum-1;
+            else
+            	fline = -1;
+            if (GTree.findNode(g) != null)
+            	gline = GTree.findNode(g).lineNum-1;
+            else
+            	gline = -1;
+            if (fline < 0) fline = -1;
+            if (gline < 0) gline = -1;
+            if ((fline >=0) || (gline >=0))
+            	action = "UNKNOWN";
+            
+            String FLabel = "";; 
+            String GLabel = ""; 
+            String FLabeler = "null"; 
+            String GLabeler = "null"; 
+            int FLineNum = 0;
+            int GLineNum = 0;
+            String twoout = "";
+            if (FTree.findNode(f) != null)
+            {
+            	FLabel = FTree.findNode(f).getLabel();
+            	if (FTree.findNode(f).getLabelerValue(labeler) != null)
+            		FLabeler = FTree.findNode(f).getLabelerValue(labeler);
+           		FLineNum = FTree.findNode(f).lineNum;
+            }
+            if (GTree.findNode(g) != null)
+            {
+            	GLabel = GTree.findNode(g).getLabel();
+            	if (GTree.findNode(g).getLabelerValue(labeler) != null)
+            		GLabeler = GTree.findNode(g).getLabelerValue(labeler);
+           		GLineNum = GTree.findNode(g).lineNum;
+            }
+            twoout = "f=" + f + " FLabel=" + FLabel + " FLabeler=" + FLabeler + " FLineNum=" + FLineNum;
+            System.out.println(twoout);
+            twoout = "g=" + g + " GLabel=" + GLabel + " GLabeler=" + GLabeler + " GLineNum=" + GLineNum;
+            System.out.println(twoout);
+            
             // if the diagonal is less than the current cell (a change is detected) 
             // and we're not inserting or deleting...
-            if ((diagdist < getFD(f, g, FinalDPTable)) &&
+            if ((diagdist < getFD(f, g, FinalDPTable2)) &&
                     (!InsertStarted) && (!DeleteStarted)) {
             	// if this is a reportable change
             	if ((ReportBlanks) || (!FTree.findNode(f).getLabelerValue(labeler).equals(""))
                         || (!GTree.findNode(g).getLabelerValue(labeler).equals(""))) {
-                    if (modlist[modindex].indexOf("CHG") == -1)
-                    	modlist[modindex] = modlist[modindex] + "CHG";
-                    if (modflist[modindex] == -3)
-                    	modflist[modindex] = (FTree.findNode(f).lineNum-1);
-                    if (modglist[modindex] == -3)
-                    	modglist[modindex] = (GTree.findNode(g).lineNum-1);
+            		if ((fline >= 0) && (gline >= 0))
+            		{
+//	                    if (modlist[modindex].indexOf("CHG") == -1)
+	//                    	modlist[modindex] = modlist[modindex] + "CHG";
+	  //                  if (modflist[modindex] <= 0)
+	    //                	modflist[modindex] = (fline);
+	      //              if (modglist[modindex] <= 0)
+	        //            	modglist[modindex] = (gline);
+            		}
             		if (debug)
+            		{
 	                    action = String.format("id=%s value=%s CHANGED to id=%s value=%s <%s:%s:%s>%n",
 	                    		FTree.findNode(f).getLabel(),
 	                            FTree.findNode(f).getLabelerValue(labeler),
 	                            GTree.findNode(g).getLabel(),
-	                            GTree.findNode(g).getLabelerValue(labeler),getFD(f, g, FinalDPTable),f,g);
+	                            GTree.findNode(g).getLabelerValue(labeler),getFD(f, g, FinalDPTable2),f,g);
+	                    thediffs[diffcounter++] = action;
+            		}
                 	else
                 		if (ShowSingleChange)
                 		{
-		                    action = String.format("value=%s CHANGED to value=%s on [%s] to [%s]%n",
-		                            FTree.findNode(f).getLabelerValue(labeler),
-		                            GTree.findNode(g).getLabelerValue(labeler),
-		                            fileAlist[FTree.findNode(f).lineNum-1],
-		                            fileBlist[GTree.findNode(g).lineNum-1]);
-		                    thediffs[diffcounter++] = action;
+                			if ((fline > 0) && (gline > 0))
+                			{
+			                    //action = String.format("value=%s CHANGED to value=%s on [%s] to [%s]%n",
+			                    //        FTree.findNode(f).getLabelerValue(labeler),
+			                    //        GTree.findNode(g).getLabelerValue(labeler),
+			                    //        fileAlist[fline],
+			                    //        fileBlist[gline]);
+			                    //thediffs[diffcounter++] = action;
+			                    if ((gline != lastg) || (fline != lastf))
+			                    {
+				                    if (modlist[modindex].indexOf("CHG") == -1)
+				                    	modlist[modindex] = modlist[modindex] + "CHG";
+				                    if (modflist[modindex] <= 0)
+				                    	modflist[modindex] = (fline);
+				                    if (modglist[modindex] <= 0)
+				                    	modglist[modindex] = (gline);
+				                    modindex++;
+				                    lastf = fline;
+				                    lastg = gline;
+			                    }
+			                    
+                			}
                 		}
                 }
             }
@@ -341,22 +582,44 @@ public class ComparisonZhangShasha
             else if (InsertStarted) {
             	// if this is a reportable change
                 if ((ReportBlanks) || (!GTree.findNode(g).getLabelerValue(labeler).equals(""))) {
-                    if (modlist[modindex].indexOf("INS") == -1)
-                    	modlist[modindex] = modlist[modindex] + "INS";
-                    if (modglist[modindex] == -3)
-                    	modglist[modindex] = (GTree.findNode(g).lineNum-1);
+  //                  if (modlist[modindex].indexOf("INS") == -1)
+  //                  	modlist[modindex] = modlist[modindex] + "INS";
+  //                  if (modglist[modindex] <= 0)
+  //                  	modglist[modindex] = (gline);
                 	if (debug)
-	                	action = String.format("id=%s value=%s INSERTED <%s:%s:%s>%n", 
-	                			GTree.findNode(g).getLabel(),
-	                            GTree.findNode(g).getLabelerValue(labeler),
-	                            getFD(f, g, FinalDPTable),f,g);
+                	{
+                		{
+            			if (gline > 0)
+            			{
+		                	action = String.format("id=%s value=%s INSERTED <%s:%s:%s>%n", 
+		                			GTree.findNode(g).getLabel(),
+		                            GTree.findNode(g).getLabelerValue(labeler),
+		                            getFD(f, g, FinalDPTable2),f,g);
+		                    thediffs[diffcounter++] = action;
+
+            			}
+                		}
+                	}
                 	else
                 		if (ShowSingleChange)
                 		{
-		                	action = String.format("value=%s INSERTED on [%s]%n", 
-		                            GTree.findNode(g).getLabelerValue(labeler),
-		                            fileBlist[GTree.findNode(g).lineNum-1]);
-		                    thediffs[diffcounter++] = action;
+                			if (gline > 0)
+                			{
+			                	//action = String.format("value=%s INSERTED on [%s]%n", 
+			                    //        GTree.findNode(g).getLabelerValue(labeler),
+			                    //        fileBlist[gline]);
+			                    //thediffs[diffcounter++] = action;
+			                    if (gline != lastg)
+			                    {
+				                    if (modlist[modindex].indexOf("INS") == -1)
+				                    	modlist[modindex] = modlist[modindex] + "INS";
+				                    if (modglist[modindex] <= 0)
+				                    	modglist[modindex] = (gline);
+				                    modindex++;
+				                    lastg = gline;
+			                    }
+			                    
+                			}
                 		}
                 }
             }
@@ -364,30 +627,46 @@ public class ComparisonZhangShasha
             else if (DeleteStarted) {
             	// if this is a reportable change
                 if ((ReportBlanks) || (!FTree.findNode(f).getLabelerValue(labeler).equals(""))) {
-                    if (modlist[modindex].indexOf("REM") == -1)
-                    	modlist[modindex] = modlist[modindex] + "REM";
-                    if (modflist[modindex] == -3)
-                    	modflist[modindex] = (FTree.findNode(f).lineNum-1);
+//                    if (modlist[modindex].indexOf("REM") == -1)
+  //                  	modlist[modindex] = modlist[modindex] + "REM";
+    //                if (modflist[modindex] <= 0)
+      //              	modflist[modindex] = (fline);
                 	if (debug)
+                	{
 	                	action = String.format("id=%s value=%s REMOVED <%s:%s:%s>%n", 
 	                			FTree.findNode(f).getLabel(),
-	                            FTree.findNode(f).getLabelerValue(labeler),getFD(f, g, FinalDPTable),f,g);
+	                            FTree.findNode(f).getLabelerValue(labeler),getFD(f, g, FinalDPTable2),f,g);
+	                    thediffs[diffcounter++] = action;
+                	}
                 	else
                 		if (ShowSingleChange)
                 		{
-		                	action = String.format("value=%s REMOVED on [%s]%n", 
-		                            FTree.findNode(f).getLabelerValue(labeler),
-		                            fileAlist[FTree.findNode(f).lineNum-1]);
-		                	thediffs[diffcounter++] = action;
+                			if (fline > 0)
+                			{
+		                	//action = String.format("value=%s REMOVED on [%s]%n", 
+		                    //        FTree.findNode(f).getLabelerValue(labeler),
+		                    //        fileAlist[fline]);
+		                	//thediffs[diffcounter++] = action;
+		                    if (fline != lastf)
+		                    {
+			                    if (modlist[modindex].indexOf("REM") == -1)
+			                    	modlist[modindex] = modlist[modindex] + "REM";
+			                    if (modflist[modindex] <= 0)
+			                    	modflist[modindex] = (fline);
+			                    modindex++;
+			                    lastf = fline;
+		                    }
+		                    
+            			}
                 		}
                 }
             }
             if (GTree.findNode(g) != null)
-	            if ((GTree.findNode(g).lineNum-1) > 0)
-	            	gprev = (GTree.findNode(g).lineNum-1);
+	            if ((gline) > 0)
+	            	gprev = (gline);
             if (FTree.findNode(g) != null)
-	            if ((FTree.findNode(f).lineNum-1) > 0)
-	            	fprev = (FTree.findNode(f).lineNum-1);
+	            if ((fline) > 0)
+	            	fprev = (fline);
             // if we *must* go left, then an insert was detected
             if ((leftdist < diagdist) && (leftdist < updist)) {
                 InsertStarted = true;
@@ -404,10 +683,10 @@ public class ComparisonZhangShasha
                 DeleteStarted = false;
             }
             // now if we *can* go left, do so
-            if ((leftdist <= getFD(f, g, FinalDPTable)) && (InsertStarted))
+            if ((leftdist <= getFD(f, g, FinalDPTable2)) && (InsertStarted))
                 g = g - 1;
             // now if we *can* go up, do so
-            else if ((updist <= getFD(f, g, FinalDPTable)) && (DeleteStarted))
+            else if ((updist <= getFD(f, g, FinalDPTable2)) && (DeleteStarted))
                 f = f - 1;
             // else go diagonal
             else {
@@ -417,18 +696,24 @@ public class ComparisonZhangShasha
             int fnow = -2;
             int gnow =-2;
             if (FTree.findNode(f) != null)
-                fnow = (FTree.findNode(f).lineNum-1);
+                fnow = (fline);
             if (GTree.findNode(g) != null)
-                gnow = (GTree.findNode(g).lineNum-1);
+                gnow = (gline);
 //        	if ((gprev != gnow) ||
 //            		(fprev != fnow))
             if ((fnow > 0) && (fprev < 0))
             	fprev = fnow;
             if ((gnow > 0) && (gprev < 0))
             	gprev = gnow;
-        	if (((gnow > 0) && (gprev != gnow)) ||
-        		((fnow > 0) && (fprev != fnow)))
-        		modindex++;
+//        	if (((gnow > 0) && (gprev != gnow)) ||
+//        		((fnow > 0) && (fprev != fnow)))
+//        		modindex++;
+            if (GTree.findNode(g) != null)
+	            if ((gline) > 0)
+	            	gprev = (gline);
+            if (FTree.findNode(g) != null)
+	            if ((fline) > 0)
+	            	fprev = (fline);
 
         }
 
@@ -484,26 +769,30 @@ public class ComparisonZhangShasha
      * integer values IDs must come from the post-ordering of the
      * nodes in the tree.
      */
-    private void findHelperTables(TreeNode someTree, Hashtable<Integer, Integer> leftmostLeaves,
+    private void findHelperTables(TreeNode someTree, 
+    		int[] leftmostLeaves2,
             ArrayList<Integer> keyroots, int aNodeID) {
-        findHelperTablesRecurse(someTree, leftmostLeaves, keyroots, aNodeID);
+        findHelperTablesRecurse(someTree, leftmostLeaves2, keyroots, aNodeID);
 
         // add root to keyroots
         keyroots.add(aNodeID);
 
         // add boundary nodes
-        leftmostLeaves.put(0, 0);
+//        leftmostLeaves.put(0, 0);
+        leftmostLeaves2[0] = 0;
     }
 
     private void findHelperTablesRecurse(TreeNode someTree,
-            Hashtable<Integer, Integer> leftmostLeaves, ArrayList<Integer> keyroots, int aNodeID) {
+            int[] leftmostLeaves2, 
+            ArrayList<Integer> keyroots, int aNodeID) {
         // System.out.println("findHelperTablesRecurse started");
         // System.out.println("aNodeID="+aNodeID);
         // someTree.PrintSuGTree();
         // System.out.println("someTree.ChildNodes.size()="+someTree.ChildNodes.size());
         // If this is a leaf, then it is the leftmost leaf
         if (someTree.GetChildCount() == 0) {
-            leftmostLeaves.put(aNodeID, aNodeID);
+            //leftmostLeaves.put(aNodeID, aNodeID);
+            leftmostLeaves2[aNodeID] = aNodeID;
         }
         else {
             // System.out.println("AAA");
@@ -511,15 +800,19 @@ public class ComparisonZhangShasha
             for (int count = 0; count < someTree.GetChildCount(); count++)
             // for (Integer child : someTree.getChildrenIDs(aNodeID))
             {
-                findHelperTablesRecurse(someTree.GetIthChild(count), leftmostLeaves, keyroots,
+                findHelperTablesRecurse(someTree.GetIthChild(count), leftmostLeaves2, keyroots,
                         someTree.GetIthChild(count).GetPostOrderID());
                 if (!seenLeftmost) {
                     // System.out.println("someTree.ChildNodes.get(count).GetChildNumber()="+someTree.ChildNodes.get(count).GetChildNumber());
                     // System.out.println("leftmostLeaves.get(someTree.ChildNodes.get(count).GetChildNumber())="+leftmostLeaves.get(someTree.ChildNodes.get(count).GetChildNumber()));
                     // System.out.println("leftmostLeaves.get(someTree.ChildNodes.get(count).GetID())="+leftmostLeaves.get(someTree.ChildNodes.get(count).GetID()));
                     // someTree.PrintSuGTree();
-                    leftmostLeaves.put(aNodeID,
-                            leftmostLeaves.get(someTree.GetIthChild(count).GetPostOrderID()));
+//                	Integer x = someTree.GetIthChild(count).GetPostOrderID();
+  //              	Integer y = leftmostLeaves.get(someTree.GetIthChild(count).GetPostOrderID());
+        //        	System.out.println(x+" "+y);
+    //                leftmostLeaves.put(aNodeID,
+      //                      leftmostLeaves.get(someTree.GetIthChild(count).GetPostOrderID()));
+                    leftmostLeaves2[aNodeID] = leftmostLeaves2[someTree.GetIthChild(count).GetPostOrderID()]; 
                     // leftmostLeaves.put(aNodeID,
                     // leftmostLeaves.get(someTree.ChildNodes.get(count).GetChildNumber()));
                     seenLeftmost = true;
@@ -534,40 +827,50 @@ public class ComparisonZhangShasha
     /**
      * This returns the value in the cell of the ForestDistance table
      */
-    private double getFD(int a, int b,
-            Hashtable<Integer, Hashtable<Integer, Double>>
-            forestDistance) {
-        Hashtable<Integer, Double> rows = null;
-        if (!forestDistance.containsKey(a)) {
-            // System.out.println("getFD: creating new aStr entry.");
-            forestDistance.put(a, new Hashtable<Integer, Double>());
-        }
+    private Integer getFD(int a, int b,
+            //Hashtable<Integer, Hashtable<Integer, Integer>> forestDistance, 
+            int[][] forestDistance2) {
+//        Hashtable<Integer, Integer> rows = null;
+//        Hashtable<Integer, Integer> z = new Hashtable<Integer, Integer>();
+//        if (!forestDistance.containsKey(a)) {
+//            // System.out.println("getFD: creating new aStr entry.");
+//            forestDistance.put(a, z);
+//        }
 
-        rows = forestDistance.get(a);
-        if (!rows.containsKey(b)) {
-            // System.out.println("creating new bStr entry.");
-            rows.put(b, 0.0);
-        }
-        return rows.get(b);
+//        rows = forestDistance.get(a);
+//        if (!rows.containsKey(b)) {
+//            // System.out.println("creating new bStr entry.");
+//            rows.put(b, 0);
+//        }
+//        Integer retval = rows.get(b);
+//        z = null;
+//        return retval;
+        return forestDistance2[a][b];
+
     }
 
     /**
      * This sets the value in the cell of the ForestDistance table
      */
     private void setFD(int a, int b,
-            double aValue,
-            Hashtable<Integer, Hashtable<Integer, Double>>
-            forestDistance) {
+            Integer aValue,
+//            int[] forestDistance) {
+            //Hashtable<Integer, Hashtable<Integer, Integer>>
+            //forestDistance, 
+            int[][] forestDistance2 ) {
 
-        Hashtable<Integer, Double> rows = null;
-        if (!forestDistance.containsKey(a)) {
-            // System.out.println("setFD: creating new aStr entry.");
-            forestDistance.put(a, new Hashtable<Integer, Double>());
-        }
+//        Hashtable<Integer, Integer> rows = null;
+//        Hashtable<Integer, Integer> z = new Hashtable<Integer, Integer>();
+//        if (!forestDistance.containsKey(a)) {
+//            // System.out.println("setFD: creating new aStr entry.");
+//            forestDistance.put(a, z);
+//        }
 
-        rows = forestDistance.get(a);
-        rows.put(b, aValue);
+//        rows = forestDistance.get(a);
+//        rows.put(b, aValue);
 
+//        z = null;
+        forestDistance2[a][b] = aValue;
         // for (String key: forestDistance.keySet()) {
         // System.out.println("FD key: "+key);
         // for (String key2: forestDistance.get(key).keySet()) {
@@ -577,7 +880,7 @@ public class ComparisonZhangShasha
     }
 
     /** Returns a String for trace writes */    
-    private String seeFD(Hashtable<Integer, Hashtable<Integer,Double>>
+    private String seeFD(Hashtable<Integer, Hashtable<Integer,Integer>>
                        forestDistance) {
     	String rval = String.format("Forest Distance");  
     	//Return result  
@@ -590,4 +893,32 @@ public class ComparisonZhangShasha
    		}
     	return rval;
    	}
+
+    private String seeFDfile(Hashtable<Integer, Hashtable<Integer,Integer>>
+    						forestDistance) {
+
+    	
+    	String rval = String.format("Forest Distance%n");  
+		//Return result  
+		for (Integer i : new TreeSet<Integer>(forestDistance.keySet())) {
+			rval = String.format("%s%s, ",rval,i);
+			for (Integer j : new TreeSet<Integer>(forestDistance.get(i).keySet())) {
+				rval = String.format("%s%s(%s), ",rval,forestDistance.get(i).get(j),j);
+			}
+			rval = rval + String.format("%n");
+	        try 
+	        {
+	          BufferedWriter out = new BufferedWriter(new FileWriter("fd.txt", true));
+	          out.write(rval);
+	          out.close();
+	        }
+	        catch (IOException e) 
+	        {
+	        }
+			rval = "";
+		}
+
+		return "";
+}
+
 }

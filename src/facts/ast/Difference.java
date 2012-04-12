@@ -42,7 +42,7 @@ public class Difference
     public String getResults() {
         StringBuilder out = new StringBuilder();
         //out.append(treeBuilder.prettyPrint(treeA));
-        //out.append(treeBuilder.prettyPrint(treeB));
+        out.append(treeBuilder.prettyPrint(treeB));
         ComparisonZhangShasha ZS = new ComparisonZhangShasha();
         OpsZhangShasha costs = new OpsZhangShasha();
         out.append(ZS.findDistance(treeA, treeB, costs, out, (UniqueTreeBuilder)treeBuilder));

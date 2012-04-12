@@ -11,7 +11,7 @@ public class BasicInsert extends TreeEditOperation
   	    super.opName = "INSERT";
     }
 
-    public double getCost(int aNodeID, int bNodeID, TreeNode aTree, TreeNode bTree) 
+    public Integer getCost(int aNodeID, int bNodeID, TreeNode aTree, TreeNode bTree) 
     {
 	      return 1;
     }

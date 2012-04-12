@@ -19,6 +19,6 @@ public abstract class TreeEditOperation
 	      return opName;
     }
 
-    public abstract double getCost(int aNodeID, int bNodeID, TreeNode aTree, TreeNode bTree);
+    public abstract Integer getCost(int aNodeID, int bNodeID, TreeNode aTree, TreeNode bTree);
 
 }

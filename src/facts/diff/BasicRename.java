@@ -15,7 +15,7 @@ public class BasicRename extends TreeEditOperation
         super.opName = "RENAME";
     }
 
-    public double getCost(int aNodeID, int bNodeID, TreeNode aTree, TreeNode bTree) {
+    public Integer getCost(int aNodeID, int bNodeID, TreeNode aTree, TreeNode bTree) {
         String aString = aTree.findNode(aNodeID).getLabel();
         String bString = bTree.findNode(bNodeID).getLabel();
         // int aDiv = aString.lastIndexOf(":");
